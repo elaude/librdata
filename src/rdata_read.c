@@ -241,6 +241,7 @@ static ssize_t read_st_compression(rdata_ctx_t *ctx, void *buffer, size_t len) {
 
 #if HAVE_ZLIB
 static ssize_t read_st_z(rdata_ctx_t *ctx, void *buffer, size_t len) {
+    const uInt max = (uInt)-1;
     ssize_t bytes_written = 0;
     int error = 0;
     int result = Z_OK;
@@ -248,7 +249,10 @@ static ssize_t read_st_z(rdata_ctx_t *ctx, void *buffer, size_t len) {
         long start_out = ctx->z_strm->total_out;
 
         ctx->z_strm->next_out = (unsigned char *)buffer + bytes_written;
-        ctx->z_strm->avail_out = len - bytes_written;
+        if (ctx->z_strm->avail_out == 0) {
+            ssize_t left = len - bytes_written;
+            ctx->z_strm->avail_out = left > (ssize_t)max ? max : (uInt)left;
+        }
 
         result = inflate(ctx->z_strm, Z_SYNC_FLUSH);
 
